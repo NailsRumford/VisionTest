@@ -1,10 +1,8 @@
 import logging
-import os
 import requests
 import io
 import json
 from telegram import __version__ as TG_VER
-from concurrent.futures import ThreadPoolExecutor
 try:
     from telegram import __version_info__
 except ImportError:
@@ -16,10 +14,8 @@ if __version_info__ < (20, 0, 0, "alpha", 1):
         f"{TG_VER} version of this example, "
         f"visit https://docs.python-telegram-bot.org/en/v{TG_VER}/examples.html"
     )
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ConversationHandler
+from telegram.ext import Application, MessageHandler, filters
 from core import settings
-import asyncio
 import io
 # Enable logging
 logging.basicConfig(
