@@ -2,6 +2,7 @@ import logging
 import requests
 import io
 import json
+import base64
 from telegram import __version__ as TG_VER
 try:
     from telegram import __version_info__
@@ -33,42 +34,45 @@ async def process_photo(update, context):
     # Получение объекта фотографии
     photo = update.message.photo[-1]  # Берем последнюю (наибольшую) фотографию
 
-
     photo_file = await photo.get_file()
     f = io.BytesIO()
     await photo_file.download_to_memory(out=f)
     f.seek(0)
- 
-    url = 'https://smarty.mail.ru/api/v1/docs/recognize'
-    oauth_token = '2FuE889wC4i3kPCMuFceU72njrL3ixR6bCStZUfkQzFcuZSmcw'
-    # Имя файла для передачи в поле 'file'
-    file_name = 'file.jpg'
-    meta = {
-        "images": [
+
+    file_content = f.read()
+    yphoto = base64.b64encode(file_content)
+    oauth_token = ''
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Api-Key {oauth_token}'
+    }
+    body = {
+        "folderId": "b1gfl2obsrr8i1vdhgd8",
+        "analyze_specs": [
             {
-                "name": "file"
+                "content": yphoto.decode('utf-8'),
+                "features": [
+                    {
+                        "type": "TEXT_DETECTION",
+                        "text_detection_config": {
+                            "language_codes": ["ru"],
+                            "model": "passport"
+                        }
+                    }
+                ]
             }
         ]
     }
-    files = {
-        'file': (file_name, f, 'image/jpeg')
-    }
-    params = {
-        'oauth_token': oauth_token,
-        'oauth_provider': 'mcs'
-    }
-    headers = {
-        'Accept': 'application/json'
-    }
-    
-    # Отправка запроса
-    response = requests.post(url, files=files, data={'meta': json.dumps(meta)}, headers=headers, params=params)
+
+    url = 'https://vision.api.cloud.yandex.net/vision/v1/batchAnalyze'
+    response = requests.post(url, headers=headers, data=json.dumps(body))
+ 
     response_json = response.json()
+    results = response_json['results'][0]['results'][0]['textDetection']['pages'][0]['entities']
+    # Преобразование JSON в удобочитаемый формат
+    formatted_response = json.dumps(results, indent=4, ensure_ascii=False)
 
-# Преобразование JSON в удобочитаемый формат
-    formatted_response = json.dumps(response_json, indent=4, ensure_ascii=False)
-
-# Отправка отформатированного ответа в сообщении Telegram
+    # Отправка отформатированного ответа в сообщении Telegram
     await update.message.reply_text(formatted_response)
 
 
